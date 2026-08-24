@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug OfficePanel.exe",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/dist/OfficePanel/OfficePanel.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/dist/OfficePanel",
+      "environment": [],
+      "console": "externalTerminal",
+      "preLaunchTask": "Full build (fetch SDK + configure + build + install)"
+    }
+  ]
+}

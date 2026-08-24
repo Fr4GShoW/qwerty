@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "1. Fetch WebView2 SDK (one-time)",
+      "detail": "Downloads nuget.exe if needed, then fetches the Microsoft.Web.WebView2 SDK into packages\\. Run this once before the first CMake configure -- CMakeLists.txt will fail with a clear message if you skip it.",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-Command",
+        "if (Test-Path 'packages\\Microsoft.Web.WebView2\\build\\native\\include\\WebView2.h') { Write-Host 'Already fetched, skipping.'; exit 0 }; if (-not (Test-Path 'nuget.exe')) { Write-Host 'Downloading nuget.exe...'; Invoke-WebRequest -Uri https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile nuget.exe }; .\\nuget.exe install Microsoft.Web.WebView2 -OutputDirectory packages -ExcludeVersion -NonInteractive"
+      ],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "2. CMake Configure",
+      "detail": "Equivalent to: cmake -S . -B build -A x64. Prefer using the CMake Tools extension's own Configure command/status-bar button instead if you have it installed -- this task is here for people using tasks/terminal only.",
+      "type": "shell",
+      "command": "cmake",
+      "args": ["-S", ".", "-B", "build", "-A", "x64"],
+      "group": "build",
+      "problemMatcher": ["$msCompile"],
+      "dependsOn": ["1. Fetch WebView2 SDK (one-time)"]
+    },
+    {
+      "label": "3. CMake Build (Release)",
+      "detail": "Equivalent to: cmake --build build --config Release",
+      "type": "shell",
+      "command": "cmake",
+      "args": ["--build", "build", "--config", "Release"],
+      "group": "build",
+      "problemMatcher": ["$msCompile"],
+      "dependsOn": ["2. CMake Configure"]
+    },
+    {
+      "label": "4. CMake Install (into dist\\OfficePanel)",
+      "detail": "Equivalent to: cmake --install build --config Release --prefix dist\\OfficePanel",
+      "type": "shell",
+      "command": "cmake",
+      "args": ["--install", "build", "--config", "Release", "--prefix", "dist\\OfficePanel"],
+      "problemMatcher": [],
+      "dependsOn": ["3. CMake Build (Release)"]
+    },
+    {
+      "label": "Full build (fetch SDK + configure + build + install)",
+      "detail": "Runs all four steps above in order via their own chained dependsOn -- this is the one task most people want, and Ctrl+Shift+B runs it by default.",
+      "group": { "kind": "build", "isDefault": true },
+      "dependsOn": ["4. CMake Install (into dist\\OfficePanel)"],
+      "problemMatcher": []
+    }
+  ]
+}

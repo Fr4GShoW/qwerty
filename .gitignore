@@ -1,0 +1,21 @@
+# CMake's generated build tree. This contains CMakeCache.txt, which
+# hardcodes the absolute path it was configured from -- if this folder
+# ever gets committed, GitHub Actions (or any other machine/path) will
+# fail to configure with:
+#   "CMake Error: The current CMakeCache.txt directory ... is different
+#    than the directory ... where CMakeCache.txt was created."
+build/
+out/
+
+# Where `cmake --install` / build_windows.bat place the finished exe.
+dist/
+
+# Downloaded by build_windows.bat / the GitHub Actions workflow to fetch
+# the WebView2 SDK -- always re-fetched fresh, never needs to be committed.
+packages/
+nuget.exe
+
+# Editor/OS noise
+.vs/
+*.user
+Thumbs.db

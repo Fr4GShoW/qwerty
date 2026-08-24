@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office Endpoint Management System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #22c55e;
+            --warning: #f97316;
+            --danger: #ef4444;
+            --purple: #a855f7;
+            --border: #475569;
+            --shadow: rgba(0,0,0,0.3);
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 4px 6px var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .logo { display: flex; align-items: center; gap: 8px; }
+        .logo svg { width: 28px; height: 28px; color: var(--accent); }
+        .logo h1 { font-size: 16px; font-weight: 600; }
+        
+        .search-box {
+            position: relative;
+            width: 250px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 7px 10px 7px 32px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .search-box svg {
+            position: absolute;
+            left: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            color: var(--text-muted);
+        }
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-top: 4px;
+            max-height: 250px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+        }
+        .search-results.active { display: block; }
+        .search-result-item {
+            padding: 8px 10px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+        .search-result-item:hover { background: var(--bg-tertiary); }
+
+        .stats-bar { display: flex; gap: 8px; align-items: center; }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            font-size: 11px;
+            border: 1px solid var(--border);
+        }
+        .stat-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .stat-dot.active { background: var(--success); }
+        .stat-dot.available { background: var(--warning); }
+        .stat-dot.substituted { background: var(--purple); }
+        .stat-dot.empty { background: var(--text-muted); }
+        .stat-value { font-weight: 600; }
+
+        .header-actions { display: flex; gap: 6px; align-items: center; }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            font-size: 11px;
+            border: 1px solid var(--border);
+        }
+        .user-info svg { width: 14px; height: 14px; }
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn svg { width: 14px; height: 14px; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-purple { background: var(--purple); color: white; }
+        .btn-sm { padding: 4px 8px; font-size: 10px; }
+
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            height: calc(100vh - 54px);
+        }
+
+        /* Office Map */
+        .office-map-container {
+            padding: 12px;
+            overflow: auto;
+            background: var(--bg-primary);
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .filter-group { display: flex; gap: 3px; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 4px 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .filter-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+        .filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+        /* Floor Plan */
+        .floor-plan {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .floor-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .floor-row:last-child { margin-bottom: 0; }
+
+        /* Room Styles */
+        .room {
+            border: 2px solid;
+            border-radius: 8px;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+        }
+        .room-header {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 6px;
+            margin: -8px -8px 8px -8px;
+            border-radius: 6px 6px 0 0;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .room-abbr {
+            font-size: 11px;
+            font-weight: 800;
+            background: rgba(255,255,255,0.2);
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+        .room-count {
+            font-size: 8px;
+            opacity: 0.9;
+        }
+
+        /* Room Colors */
+        .room-la { border-color: #22c55e; }
+        .room-la .room-header { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .room-sf-mn { border-color: #8b5cf6; }
+        .room-sf-mn .room-header { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .room-hr { border-color: #ec4899; }
+        .room-hr .room-header { background: linear-gradient(135deg, #ec4899, #db2777); }
+        .room-op { border-color: #f59e0b; }
+        .room-op .room-header { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .room-admin { border-color: #06b6d4; }
+        .room-admin .room-header { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+        .room-shared { border-color: #6366f1; }
+        .room-shared .room-header { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+
+        /* Desk Section */
+        .desk-section {
+            margin-bottom: 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed var(--border);
+        }
+        .desk-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+        .desk-section-label {
+            font-size: 7px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 3px;
+            font-weight: 600;
+        }
+
+        /* Desk Row */
+        .desk-row {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 3px;
+            padding: 2px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 3px;
+            border-left: 2px solid var(--border);
+        }
+
+        /* Desk pair */
+        .desk-pair {
+            display: flex;
+            gap: 2px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+            padding: 2px;
+            margin-right: 6px;
+        }
+
+        /* Desk Styles */
+        .desk {
+            min-width: 48px;
+            height: 32px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.15);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .desk:hover {
+            transform: scale(1.15);
+            z-index: 10;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+        .desk.active { background: linear-gradient(135deg, var(--success), #16a34a); color: white; }
+        .desk.available { background: linear-gradient(135deg, var(--warning), #ea580c); color: white; }
+        .desk.substituted {
+            background: linear-gradient(135deg, var(--purple), #9333ea);
+            color: white;
+            animation: pulse-glow 2s infinite;
+        }
+        .desk.empty { background: linear-gradient(135deg, #475569, #334155); color: var(--text-muted); }
+        .desk.selected {
+            transform: scale(1.25);
+            box-shadow: 0 0 0 2px var(--accent), 0 4px 12px var(--shadow);
+            z-index: 20;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 4px var(--purple); }
+            50% { box-shadow: 0 0 12px var(--purple); }
+        }
+
+        /* Tooltip */
+        .desk-tooltip {
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+        .desk:hover .desk-tooltip { display: block; }
+        .tooltip-user { font-weight: 600; }
+        .tooltip-pc { color: var(--text-muted); font-size: 10px; margin-top: 2px; }
+
+        /* Details Panel */
+        .details-panel {
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-title { font-size: 13px; font-weight: 600; }
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 20px;
+        }
+        .placeholder svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5; }
+        .placeholder h3 { font-size: 14px; margin-bottom: 6px; color: var(--text-secondary); }
+        .placeholder p { font-size: 11px; }
+
+        /* Detail View */
+        .detail-card { display: none; }
+        .detail-card.active { display: block; }
+
+        .endpoint-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .endpoint-location { font-size: 20px; font-weight: 700; color: var(--accent); }
+        .endpoint-zone { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-badge.active { background: rgba(34,197,94,0.2); color: var(--success); }
+        .status-badge.available { background: rgba(249,115,22,0.2); color: var(--warning); }
+        .status-badge.substituted { background: rgba(168,85,247,0.2); color: var(--purple); }
+        .status-badge.empty { background: rgba(100,116,139,0.2); color: var(--text-muted); }
+        .status-badge::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .detail-section { margin-bottom: 14px; }
+        .detail-section-header {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .detail-section-header::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .detail-item {
+            background: var(--bg-primary);
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+        }
+        .detail-item.full { grid-column: span 2; }
+        .detail-label { font-size: 9px; color: var(--text-muted); margin-bottom: 2px; }
+        .detail-value { font-size: 11px; font-weight: 500; word-break: break-word; }
+
+        .monitors-list { display: flex; flex-direction: column; gap: 4px; }
+        .monitor-item {
+            background: var(--bg-primary);
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            border: 1px solid var(--border);
+        }
+
+        /* Substitute Alert */
+        .substitute-alert {
+            background: rgba(168,85,247,0.1);
+            border: 1px solid var(--purple);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 12px;
+        }
+        .substitute-alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .substitute-alert-title {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--purple);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .substitute-info { font-size: 10px; color: var(--text-secondary); }
+        .substitute-info strong { color: var(--text-primary); }
+
+        /* Replacement History */
+        .history-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 8px;
+            margin-bottom: 6px;
+            font-size: 10px;
+        }
+        .history-item:last-child { margin-bottom: 0; }
+        .history-date { color: var(--text-muted); font-size: 9px; }
+        .history-component { font-weight: 600; color: var(--accent); }
+
+        /* Edit Form */
+        .edit-form { display: none; }
+        .edit-form.active { display: block; }
+
+        .form-section { margin-bottom: 12px; }
+        .form-section-title {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .form-group { margin-bottom: 10px; }
+        .form-group label {
+            display: block;
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-bottom: 3px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .form-group textarea { resize: vertical; min-height: 60px; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            margin-top: 12px;
+        }
+        .btn-group .btn { flex: 1; justify-content: center; }
+
+        .actions-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        /* Component Replacement Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 450px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .modal-title { font-size: 16px; font-weight: 600; }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 14px;
+            box-shadow: 0 4px 12px var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideIn 0.3s ease;
+            font-size: 12px;
+        }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        .toast.info { border-left: 3px solid var(--accent); }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            color: var(--text-secondary);
+        }
+        .legend-color { width: 10px; height: 10px; border-radius: 2px; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <h1>Office Endpoint Management</h1>
+            </div>
+            <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="search-input" placeholder="Search endpoints..." />
+                <div class="search-results" id="search-results"></div>
+            </div>
+        </div>
+        <div class="stats-bar">
+            <div class="stat">
+                <span class="stat-value" id="total-count">0</span> Total
+            </div>
+            <div class="stat">
+                <div class="stat-dot active"></div>
+                <span class="stat-value" id="active-count">0</span> Active
+            </div>
+            <div class="stat">
+                <div class="stat-dot available"></div>
+                <span class="stat-value" id="available-count">0</span> Avail
+            </div>
+            <div class="stat">
+                <div class="stat-dot substituted"></div>
+                <span class="stat-value" id="substituted-count">0</span> Sub
+            </div>
+            <div class="stat">
+                <div class="stat-dot empty"></div>
+                <span class="stat-value" id="empty-count">0</span> Empty
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="user-info">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span id="user-display">-</span>
+            </div>
+            <button class="btn btn-secondary" onclick="exportData()">Export</button>
+            <button class="btn btn-secondary" onclick="refreshData()">Reload</button>
+            <button id="sync-sheets-btn" class="btn btn-primary" onclick="syncFromSheets()">🔄 Sync from Sheets</button>
+            <button class="btn btn-danger" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="office-map-container">
+            <div class="toolbar">
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="active">Active</button>
+                    <button class="filter-btn" data-filter="available">Available</button>
+                    <button class="filter-btn" data-filter="substituted">Substituted</button>
+                    <button class="filter-btn" data-filter="empty">Empty</button>
+                    <span style="width: 1px; background: var(--border); margin: 0 4px;"></span>
+                    <button class="filter-btn" data-filter="la">LA</button>
+                    <button class="filter-btn" data-filter="sf">SF</button>
+                    <button class="filter-btn" data-filter="mn">MN</button>
+                    <button class="filter-btn" data-filter="hr">HR</button>
+                    <button class="filter-btn" data-filter="op">OP</button>
+                    <button class="filter-btn" data-filter="mm">MM</button>
+                    <button class="filter-btn" data-filter="ac">AC</button>
+                    <button class="filter-btn" data-filter="ah">AH</button>
+                </div>
+            </div>
+
+            <div class="floor-plan">
+                <!-- Row 1: LA, Safety/Maintenance, HR -->
+                <div class="floor-row">
+                    <div class="room room-la">
+                        <div class="room-header">
+                            <span><span class="room-abbr">LA</span> Load Acquisition</span>
+                            <span class="room-count" id="la-count">0/12</span>
+                        </div>
+                        <div id="la-desks"></div>
+                    </div>
+
+                    <div class="room room-sf-mn">
+                        <div class="room-header">
+                            <span><span class="room-abbr">SF/MN</span> Safety / Data Entry / Maintenance</span>
+                            <span class="room-count" id="sf-mn-count">0/25</span>
+                        </div>
+                        <div id="sf-mn-desks"></div>
+                    </div>
+
+                    <div class="room room-hr">
+                        <div class="room-header">
+                            <span><span class="room-abbr">HR</span> Human Resources</span>
+                            <span class="room-count" id="hr-count">0/7</span>
+                        </div>
+                        <div id="hr-desks"></div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Operations -->
+                <div class="floor-row">
+                    <div class="room room-op" style="flex: 1;">
+                        <div class="room-header">
+                            <span><span class="room-abbr">OP</span> Operations (paired desks: OP1+OP2, OP3+OP4, etc.)</span>
+                            <span class="room-count" id="op-count">0/84</span>
+                        </div>
+                        <div id="op-desks"></div>
+                    </div>
+                </div>
+
+                <!-- Row 3: Administration + Shared Room -->
+                <div class="floor-row">
+                    <div class="room room-admin">
+                        <div class="room-header">
+                            <span><span class="room-abbr">MM</span> Administration</span>
+                            <span class="room-count" id="mm-count">0/3</span>
+                        </div>
+                        <div id="mm-desks"></div>
+                    </div>
+
+                    <div class="room room-shared" style="flex: 1;">
+                        <div class="room-header">
+                            <span><span class="room-abbr">AC/AH</span> Accounting / IT / Marketing / After Hours</span>
+                            <span class="room-count" id="shared-count">0/32</span>
+                        </div>
+                        <div id="shared-desks"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color" style="background: var(--success);"></div>Active</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--warning);"></div>Available</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--purple);"></div>Substituted</div>
+                <div class="legend-item"><div class="legend-color" style="background: #475569;"></div>Empty</div>
+            </div>
+        </div>
+
+        <!-- Details Panel -->
+        <div class="details-panel">
+            <div class="panel-header">
+                <span class="panel-title">Endpoint Details</span>
+            </div>
+            <div class="panel-content">
+                <div class="placeholder" id="placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <h3>Select an Endpoint</h3>
+                    <p>Click on any desk to view details</p>
+                </div>
+
+                <div class="detail-card" id="detail-view">
+                    <div class="endpoint-header">
+                        <div>
+                            <div class="endpoint-location" id="endpoint-location">-</div>
+                            <div class="endpoint-zone" id="endpoint-zone">-</div>
+                        </div>
+                        <div class="status-badge" id="endpoint-status">-</div>
+                    </div>
+
+                    <div class="substitute-alert" id="substitute-alert" style="display: none;">
+                        <div class="substitute-alert-header">
+                            <div class="substitute-alert-title">⚠️ Temporary Substitute</div>
+                            <button class="btn btn-sm btn-danger" onclick="removeSubstitute()">Remove</button>
+                        </div>
+                        <div class="substitute-info">
+                            <div><strong>Device:</strong> <span id="sub-pc">-</span></div>
+                            <div><strong>Owner:</strong> <span id="sub-owner">-</span></div>
+                            <div><strong>Reason:</strong> <span id="sub-reason">-</span></div>
+                        </div>
+                    </div>
+
+                    <!-- USER INFO SECTION -->
+                    <div class="detail-section">
+                        <div class="detail-section-header">User Information</div>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <div class="detail-label">Inventory Number</div>
+                                <div class="detail-value" id="detail-inventory">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Full Name / User</div>
+                                <div class="detail-value" id="detail-user">-</div>
+                            </div>
+                            <div class="detail-item full">
+                                <div class="detail-label">Start Date</div>
+                                <div class="detail-value" id="detail-datestart">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HARDWARE SPECS SECTION -->
+                    <div class="detail-section">
+                        <div class="detail-section-header">Hardware Specs</div>
+                        <div class="detail-grid">
+                            <div class="detail-item full">
+                                <div class="detail-label">PC Name</div>
+                                <div class="detail-value" id="detail-pcname">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">OS</div>
+                                <div class="detail-value" id="detail-os">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">CPU</div>
+                                <div class="detail-value" id="detail-cpu">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">RAM Size (GB)</div>
+                                <div class="detail-value" id="detail-ram">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">RAM Speed (MHz)</div>
+                                <div class="detail-value" id="detail-rammhz">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Motherboard</div>
+                                <div class="detail-value" id="detail-motherboard">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Chipset</div>
+                                <div class="detail-value" id="detail-chipset">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FURNITURE & SETUP SECTION -->
+                    <div class="detail-section">
+                        <div class="detail-section-header">Furniture & Setup</div>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <div class="detail-label">Chair</div>
+                                <div class="detail-value" id="detail-chair">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Table</div>
+                                <div class="detail-value" id="detail-table">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Mount</div>
+                                <div class="detail-value" id="detail-mount">-</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Mount Type</div>
+                                <div class="detail-value" id="detail-mounttype">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MONITORS SECTION -->
+                    <div class="detail-section">
+                        <div class="detail-section-header">Monitors</div>
+                        <div class="monitors-list" id="monitors-list">
+                            <div class="monitor-item">No monitors listed</div>
+                        </div>
+                    </div>
+
+                    <!-- COMMENTS SECTION -->
+                    <div class="detail-section">
+                        <div class="detail-section-header">Notes / Comments</div>
+                        <div class="detail-item full">
+                            <div class="detail-value" id="detail-comment" style="font-weight: normal; color: var(--text-secondary);">-</div>
+                        </div>
+                    </div>
+
+                    <div class="detail-section" id="history-section" style="display: none;">
+                        <div class="detail-section-header">Replacement History</div>
+                        <div id="history-list"></div>
+                    </div>
+
+                    <div class="actions-row">
+                        <button class="btn btn-primary" onclick="toggleEditMode()">✏️ Edit</button>
+                        <button class="btn btn-secondary" onclick="showReplaceComponent()">🔧 Replace Part</button>
+                    </div>
+                </div>
+
+                <!-- EDIT FORM -->
+                <div class="edit-form" id="edit-form">
+                    <div class="endpoint-header">
+                        <div>
+                            <div class="endpoint-location" id="edit-location">-</div>
+                            <div class="endpoint-zone" id="edit-zone">-</div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">User Info</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Inventory Number</label>
+                                <input type="text" id="edit-inventory" />
+                            </div>
+                            <div class="form-group">
+                                <label>Full Name / User</label>
+                                <input type="text" id="edit-user" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Date Start</label>
+                            <input type="text" id="edit-datestart" />
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">Hardware Specs</div>
+                        <div class="form-group">
+                            <label>PC Name</label>
+                            <input type="text" id="edit-pcname" />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>OS</label>
+                                <input type="text" id="edit-os" />
+                            </div>
+                            <div class="form-group">
+                                <label>CPU</label>
+                                <input type="text" id="edit-cpu" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>RAM Size (GB)</label>
+                                <input type="text" id="edit-ram" />
+                            </div>
+                            <div class="form-group">
+                                <label>RAM Speed (MHz)</label>
+                                <input type="text" id="edit-rammhz" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Motherboard</label>
+                                <input type="text" id="edit-motherboard" />
+                            </div>
+                            <div class="form-group">
+                                <label>Chipset</label>
+                                <input type="text" id="edit-chipset" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">Furniture & Setup</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Chair</label>
+                                <input type="text" id="edit-chair" />
+                            </div>
+                            <div class="form-group">
+                                <label>Table</label>
+                                <input type="text" id="edit-table" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Mount</label>
+                                <input type="text" id="edit-mount" />
+                            </div>
+                            <div class="form-group">
+                                <label>Mount Type</label>
+                                <input type="text" id="edit-mounttype" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title" style="color: var(--purple);">⚠️ Substitute Device</div>
+                        <div class="form-group">
+                            <label>Substitute PC Name</label>
+                            <input type="text" id="edit-sub-pc" />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Owner</label>
+                                <input type="text" id="edit-sub-owner" />
+                            </div>
+                            <div class="form-group">
+                                <label>Reason</label>
+                                <input type="text" id="edit-sub-reason" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">Notes / Comments</div>
+                        <div class="form-group">
+                            <textarea id="edit-comment" placeholder="Comments..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+                        <button class="btn btn-success" onclick="saveEndpoint()">💾 Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Replace Component Modal -->
+    <div class="modal-overlay" id="replace-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">🔧 Replace Component</h2>
+                <button class="modal-close" onclick="hideReplaceComponent()">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Component</label>
+                <select id="replace-component">
+                    <option value="">Select component...</option>
+                    <option value="cpu">CPU</option>
+                    <option value="ram">RAM</option>
+                    <option value="ram_brand">RAM Brand</option>
+                    <option value="ram_mhz">RAM MHz</option>
+                    <option value="motherboard">Motherboard</option>
+                    <option value="hdd">HDD</option>
+                    <option value="ssd">SSD</option>
+                    <option value="psu">PSU</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Old Value</label>
+                <input type="text" id="replace-old" placeholder="Previous component" />
+            </div>
+            <div class="form-group">
+                <label>New Value</label>
+                <input type="text" id="replace-new" placeholder="New component" />
+            </div>
+            <div class="form-group">
+                <label>Reason for Replacement</label>
+                <input type="text" id="replace-reason" placeholder="e.g., Defective, Upgrade" />
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="hideReplaceComponent()">Cancel</button>
+                <button class="btn btn-success" onclick="submitReplacement()">Save Replacement</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        let endpoints = [];
+        let selectedEndpoint = null;
+        let currentFilter = 'all';
+        let isEditMode = false;
+        let currentUser = null;
+
+        const placeholder = document.getElementById('placeholder');
+        const detailView = document.getElementById('detail-view');
+        const editForm = document.getElementById('edit-form');
+
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/check-auth');
+                const data = await response.json();
+                if (!data.authenticated) {
+                    window.location.href = '/login';
+                    return false;
+                }
+                currentUser = data.user;
+                document.getElementById('user-display').textContent = data.user + ' (' + data.role + ')';
+                return true;
+            } catch (e) {
+                window.location.href = '/login';
+                return false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (await checkAuth()) {
+                loadData();
+                setupEventListeners();
+            }
+        });
+
+        async function loadData() {
+            try {
+                const response = await fetch('/api/endpoints');
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const data = await response.json();
+                endpoints = data.endpoints || data || [];
+                updateStats();
+                renderFloorPlan();
+                showToast('Data loaded', 'success');
+            } catch (error) {
+                showToast('Failed to load data', 'error');
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('total-count').textContent = endpoints.length;
+            document.getElementById('active-count').textContent = endpoints.filter(e => e.status === 'active').length;
+            document.getElementById('available-count').textContent = endpoints.filter(e => e.status === 'available').length;
+            document.getElementById('substituted-count').textContent = endpoints.filter(e => e.status === 'substituted').length;
+            document.getElementById('empty-count').textContent = endpoints.filter(e => e.status === 'empty').length;
+        }
+
+        function getEndpoint(location) {
+            return endpoints.find(e => (e.location || '').toUpperCase() === location.toUpperCase());
+        }
+
+        function shouldShow(endpoint, location) {
+            if (currentFilter === 'all') return true;
+            if (['active', 'available', 'substituted', 'empty'].includes(currentFilter)) {
+                return endpoint ? endpoint.status === currentFilter : currentFilter === 'empty';
+            }
+            const filterMap = { la: 'LA', sf: 'SF', mn: 'MN', hr: 'HR', op: 'OP', mm: 'MM', ac: 'AC', ah: 'AH' };
+            return location.toUpperCase().startsWith(filterMap[currentFilter] || '');
+        }
+
+        function createDesk(location) {
+            const endpoint = getEndpoint(location);
+            const desk = document.createElement('div');
+            desk.className = `desk ${endpoint ? endpoint.status : 'empty'}`;
+            desk.dataset.location = location;
+            
+            const displayUser = (endpoint && endpoint.user && endpoint.user.toLowerCase() !== 'unassigned') ? endpoint.user : 'Unassigned';
+            
+            desk.innerHTML = `
+                <span>${location}</span>
+                <div class="desk-tooltip">
+                    <div class="tooltip-user">${displayUser}</div>
+                    <div class="tooltip-pc">${endpoint?.pc_name || 'No PC'}</div>
+                </div>
+            `;
+            
+            if (!shouldShow(endpoint, location)) desk.style.opacity = '0.3';
+            desk.addEventListener('click', () => selectDesk(location, endpoint));
+            return desk;
+        }
+
+        function renderFloorPlan() {
+            // LA Room
+            const laContainer = document.getElementById('la-desks');
+            laContainer.innerHTML = '';
+            for (let row = 1; row <= 2; row++) {
+                const deskRow = document.createElement('div');
+                deskRow.className = 'desk-row';
+                for (let col = 1; col <= 6; col++) {
+                    deskRow.appendChild(createDesk(`LA${row}-${col}`));
+                }
+                laContainer.appendChild(deskRow);
+            }
+
+            // SF/MN Room
+            const sfMnContainer = document.getElementById('sf-mn-desks');
+            sfMnContainer.innerHTML = '';
+            
+            const safetySection = document.createElement('div');
+            safetySection.className = 'desk-section';
+            safetySection.innerHTML = '<div class="desk-section-label">Safety (SF)</div>';
+            
+            // SF Row 1: SF1-1 to SF1-4
+            const sfRow1 = document.createElement('div');
+            sfRow1.className = 'desk-row';
+            for (let col = 1; col <= 4; col++) {
+                sfRow1.appendChild(createDesk(`SF1-${col}`));
+            }
+            safetySection.appendChild(sfRow1);
+
+            // SF Row 2: SF2-1 to SF2-3 (Only up to 3)
+            const sfRow2 = document.createElement('div');
+            sfRow2.className = 'desk-row';
+            for (let col = 1; col <= 3; col++) {
+                sfRow2.appendChild(createDesk(`SF2-${col}`));
+            }
+            safetySection.appendChild(sfRow2);
+
+            sfMnContainer.appendChild(safetySection);
+
+            // Data Entry SF3-SF4
+            const dataSection = document.createElement('div');
+            dataSection.className = 'desk-section';
+            dataSection.innerHTML = '<div class="desk-section-label">Data Entry (SF)</div>';
+            for (let row = 3; row <= 4; row++) {
+                const deskRow = document.createElement('div');
+                deskRow.className = 'desk-row';
+                for (let col = 1; col <= 4; col++) {
+                    deskRow.appendChild(createDesk(`SF${row}-${col}`));
+                }
+                dataSection.appendChild(deskRow);
+            }
+            sfMnContainer.appendChild(dataSection);
+
+            // Maintenance MN1-MN2
+            const mnSection = document.createElement('div');
+            mnSection.className = 'desk-section';
+            mnSection.innerHTML = '<div class="desk-section-label">Maintenance (MN)</div>';
+            for (let row = 1; row <= 2; row++) {
+                const deskRow = document.createElement('div');
+                deskRow.className = 'desk-row';
+                for (let col = 1; col <= 5; col++) {
+                    deskRow.appendChild(createDesk(`MN${row}-${col}`));
+                }
+                mnSection.appendChild(deskRow);
+            }
+            sfMnContainer.appendChild(mnSection);
+
+            // HR Room
+            const hrContainer = document.getElementById('hr-desks');
+            hrContainer.innerHTML = '';
+            const hrLayout = [
+                ['HR1-1', 'HR2-1', 'HR3-1'],
+                ['HR1-2', 'HR2-2', 'HR3-2'],
+                ['HR1-3', '', '']
+            ];
+            hrLayout.forEach(row => {
+                const deskRow = document.createElement('div');
+                deskRow.className = 'desk-row';
+                row.forEach(loc => {
+                    if (loc) {
+                        deskRow.appendChild(createDesk(loc));
+                    } else {
+                        const spacer = document.createElement('div');
+                        spacer.style.cssText = 'width: 28px; height: 22px;';
+                        deskRow.appendChild(spacer);
+                    }
+                });
+                hrContainer.appendChild(deskRow);
+            });
+
+            // Operations
+            const opContainer = document.getElementById('op-desks');
+            opContainer.innerHTML = '';
+            for (let row = 1; row <= 7; row++) {
+                const deskRow = document.createElement('div');
+                deskRow.className = 'desk-row';
+                for (let pairStart = 1; pairStart <= 11; pairStart += 2) {
+                    const pair = document.createElement('div');
+                    pair.className = 'desk-pair';
+                    pair.title = `Physical desk: OP${pairStart}+OP${pairStart+1}`;
+                    pair.appendChild(createDesk(`OP${pairStart}-${row}`));
+                    pair.appendChild(createDesk(`OP${pairStart+1}-${row}`));
+                    deskRow.appendChild(pair);
+                }
+                opContainer.appendChild(deskRow);
+            }
+
+            // Management
+            const mmContainer = document.getElementById('mm-desks');
+            mmContainer.innerHTML = '';
+            const mmRow = document.createElement('div');
+            mmRow.className = 'desk-row';
+            for (let col = 1; col <= 3; col++) {
+                mmRow.appendChild(createDesk(`MM1-${col}`));
+            }
+            mmContainer.appendChild(mmRow);
+
+            // Shared Room: AC + AH
+            const sharedContainer = document.getElementById('shared-desks');
+            sharedContainer.innerHTML = '';
+
+            const acSection = document.createElement('div');
+            acSection.className = 'desk-section';
+            acSection.innerHTML = '<div class="desk-section-label">Accounting (AC)</div>';
+            for (let row = 1; row <= 8; row++) {
+                const deskRow = document.createElement('div');
+                deskRow.className = 'desk-row';
+                for (let col = 1; col <= 3; col++) {
+                    deskRow.appendChild(createDesk(`AC${col}-${row}`));
+                }
+                acSection.appendChild(deskRow);
+            }
+            sharedContainer.appendChild(acSection);
+
+            const ahSection = document.createElement('div');
+            ahSection.className = 'desk-section';
+            ahSection.innerHTML = '<div class="desk-section-label">After Hours (AH)</div>';
+            const ahRow = document.createElement('div');
+            ahRow.className = 'desk-row';
+            for (let col = 1; col <= 8; col++) {
+                ahRow.appendChild(createDesk(`AH1-${col}`));
+            }
+            ahSection.appendChild(ahRow);
+            sharedContainer.appendChild(ahSection);
+
+            updateRoomCounts();
+        }
+
+        function updateRoomCounts() {
+            const counts = { la: {t:12,a:0}, 'sf-mn': {t:25,a:0}, hr: {t:7,a:0}, op: {t:84,a:0}, mm: {t:3,a:0}, shared: {t:32,a:0} };
+            endpoints.forEach(e => {
+                const loc = (e.location || '').toUpperCase();
+                if (e.status === 'active' || e.status === 'substituted') {
+                    if (loc.startsWith('LA')) counts.la.a++;
+                    else if (loc.startsWith('SF') || loc.startsWith('MN')) counts['sf-mn'].a++;
+                    else if (loc.startsWith('HR')) counts.hr.a++;
+                    else if (loc.startsWith('OP')) counts.op.a++;
+                    else if (loc.startsWith('MM')) counts.mm.a++;
+                    else if (loc.startsWith('AC') || loc.startsWith('AH')) counts.shared.a++;
+                }
+            });
+            document.getElementById('la-count').textContent = `${counts.la.a}/${counts.la.t}`;
+            document.getElementById('sf-mn-count').textContent = `${counts['sf-mn'].a}/${counts['sf-mn'].t}`;
+            document.getElementById('hr-count').textContent = `${counts.hr.a}/${counts.hr.t}`;
+            document.getElementById('op-count').textContent = `${counts.op.a}/${counts.op.t}`;
+            document.getElementById('mm-count').textContent = `${counts.mm.a}/${counts.mm.t}`;
+            document.getElementById('shared-count').textContent = `${counts.shared.a}/${counts.shared.t}`;
+        }
+
+        function selectDesk(location, endpoint) {
+            document.querySelectorAll('.desk.selected').forEach(d => d.classList.remove('selected'));
+            const deskEl = document.querySelector(`.desk[data-location="${location}"]`);
+            if (deskEl) deskEl.classList.add('selected');
+
+            if (!endpoint) {
+                endpoint = { location, status: 'empty', zone: getZone(location) };
+            }
+            selectedEndpoint = endpoint;
+            showDetails(endpoint);
+        }
+
+        function getZone(location) {
+            const prefix = location.substring(0, 2).toUpperCase();
+            const zones = { LA: 'Load Acquisition', SF: 'Safety', MN: 'Maintenance', HR: 'HR', OP: 'Operations', MM: 'Administration', AC: 'Accounting', AH: 'After Hours' };
+            return zones[prefix] || 'Unknown';
+        }
+
+        function formatUnit(val, unit) {
+            if (!val) return '-';
+            const strVal = String(val).trim();
+            if (strVal.toLowerCase().includes(unit.toLowerCase())) {
+                return strVal;
+            }
+            return `${strVal} ${unit}`;
+        }
+
+        function showDetails(endpoint) {
+            placeholder.style.display = 'none';
+            detailView.classList.add('active');
+            editForm.classList.remove('active');
+            isEditMode = false;
+
+            document.getElementById('endpoint-location').textContent = endpoint.location;
+            document.getElementById('endpoint-zone').textContent = endpoint.zone || getZone(endpoint.location);
+            
+            const statusEl = document.getElementById('endpoint-status');
+            const statusText = endpoint.status === 'substituted' ? 'Substituted' : endpoint.status.charAt(0).toUpperCase() + endpoint.status.slice(1);
+            statusEl.textContent = statusText;
+            statusEl.className = `status-badge ${endpoint.status}`;
+
+            // User Info Section
+            document.getElementById('detail-inventory').textContent = endpoint.inventory_number || '-';
+            
+            const userDisp = (endpoint.user && endpoint.user.toLowerCase() !== 'unassigned') ? endpoint.user : 'Unassigned';
+            document.getElementById('detail-user').textContent = userDisp;
+            document.getElementById('detail-datestart').textContent = endpoint.date_start || '-';
+
+            // Hardware Section
+            document.getElementById('detail-pcname').textContent = endpoint.pc_name || '-';
+            document.getElementById('detail-os').textContent = endpoint.os || endpoint.windows || '-';
+            document.getElementById('detail-cpu').textContent = endpoint.cpu || '-';
+            document.getElementById('detail-chipset').textContent = endpoint.chipset || '-';
+            document.getElementById('detail-ram').textContent = formatUnit(endpoint.ram_size, 'GB');
+            document.getElementById('detail-rammhz').textContent = formatUnit(endpoint.ram_mhz, 'MHz');
+            document.getElementById('detail-motherboard').textContent = endpoint.motherboard || '-';
+
+            // Setup
+            document.getElementById('detail-chair').textContent = endpoint.chair || '-';
+            document.getElementById('detail-table').textContent = endpoint.table || '-';
+            document.getElementById('detail-mount').textContent = endpoint.mount || '-';
+            document.getElementById('detail-mounttype').textContent = endpoint.mount_type || '-';
+
+            document.getElementById('detail-comment').textContent = endpoint.comment || 'No comments';
+
+            // Monitors List
+            const monitorsList = document.getElementById('monitors-list');
+            monitorsList.innerHTML = '';
+            if (endpoint.monitors && endpoint.monitors.length > 0) {
+                endpoint.monitors.forEach(mon => {
+                    const item = document.createElement('div');
+                    item.className = 'monitor-item';
+                    item.textContent = mon;
+                    monitorsList.appendChild(item);
+                });
+            } else {
+                monitorsList.innerHTML = '<div class="monitor-item" style="opacity:0.5;">No monitors listed</div>';
+            }
+
+            // Substitute alert
+            const subAlert = document.getElementById('substitute-alert');
+            const hasSub = endpoint.substitute_pc_name || endpoint.substitute_pc;
+            if (hasSub) {
+                subAlert.style.display = 'block';
+                document.getElementById('sub-pc').textContent = endpoint.substitute_pc_name || endpoint.substitute_pc || '-';
+                document.getElementById('sub-owner').textContent = endpoint.substitute_owner || '-';
+                document.getElementById('sub-reason').textContent = endpoint.substitute_reason || '-';
+            } else {
+                subAlert.style.display = 'none';
+            }
+
+            // Replacement history
+            const historySection = document.getElementById('history-section');
+            const historyList = document.getElementById('history-list');
+            if (endpoint.replacement_history && endpoint.replacement_history.length > 0) {
+                historySection.style.display = 'block';
+                historyList.innerHTML = endpoint.replacement_history.slice(-5).reverse().map(h => `
+                    <div class="history-item">
+                        <div class="history-date">${new Date(h.date).toLocaleDateString()} by ${h.replaced_by}</div>
+                        <div><span class="history-component">${h.component.toUpperCase()}</span>: ${h.old_value || '-'} → ${h.new_value}</div>
+                        <div style="color: var(--text-muted); font-size: 9px;">Reason: ${h.reason || '-'}</div>
+                    </div>
+                `).join('');
+            } else {
+                historySection.style.display = 'none';
+            }
+        }
+
+        function toggleEditMode() {
+            if (!selectedEndpoint) return;
+            isEditMode = true;
+            detailView.classList.remove('active');
+            editForm.classList.add('active');
+
+            document.getElementById('edit-location').textContent = selectedEndpoint.location;
+            document.getElementById('edit-zone').textContent = selectedEndpoint.zone || getZone(selectedEndpoint.location);
+            
+            document.getElementById('edit-inventory').value = selectedEndpoint.inventory_number || '';
+            document.getElementById('edit-user').value = (selectedEndpoint.user && selectedEndpoint.user.toLowerCase() !== 'unassigned') ? selectedEndpoint.user : '';
+            document.getElementById('edit-datestart').value = selectedEndpoint.date_start || '';
+            
+            document.getElementById('edit-pcname').value = selectedEndpoint.pc_name || '';
+            document.getElementById('edit-os').value = selectedEndpoint.os || selectedEndpoint.windows || '';
+            document.getElementById('edit-cpu').value = selectedEndpoint.cpu || '';
+            document.getElementById('edit-ram').value = selectedEndpoint.ram_size || '';
+            document.getElementById('edit-rammhz').value = selectedEndpoint.ram_mhz || '';
+            document.getElementById('edit-motherboard').value = selectedEndpoint.motherboard || '';
+            document.getElementById('edit-chipset').value = selectedEndpoint.chipset || '';
+
+            document.getElementById('edit-chair').value = selectedEndpoint.chair || '';
+            document.getElementById('edit-table').value = selectedEndpoint.table || '';
+            document.getElementById('edit-mount').value = selectedEndpoint.mount || '';
+            document.getElementById('edit-mounttype').value = selectedEndpoint.mount_type || '';
+
+            document.getElementById('edit-sub-pc').value = selectedEndpoint.substitute_pc_name || selectedEndpoint.substitute_pc || '';
+            document.getElementById('edit-sub-owner').value = selectedEndpoint.substitute_owner || '';
+            document.getElementById('edit-sub-reason').value = selectedEndpoint.substitute_reason || '';
+            document.getElementById('edit-comment').value = selectedEndpoint.comment || '';
+        }
+
+        function cancelEdit() {
+            isEditMode = false;
+            editForm.classList.remove('active');
+            if (selectedEndpoint) detailView.classList.add('active');
+            else placeholder.style.display = 'flex';
+        }
+
+        async function saveEndpoint() {
+            if (!selectedEndpoint) return;
+
+            const subPC = document.getElementById('edit-sub-pc').value.trim();
+            const user = document.getElementById('edit-user').value.trim();
+            const pcName = document.getElementById('edit-pcname').value.trim();
+            const inventory = document.getElementById('edit-inventory').value.trim();
+
+            let newStatus;
+            if (subPC) newStatus = 'substituted';
+            else if (user && user.toLowerCase() !== 'unassigned' && user.toLowerCase() !== 'no user') newStatus = 'active';
+            else if (pcName) newStatus = 'available';
+            else newStatus = 'empty';
+
+            const updateData = {
+                id: selectedEndpoint.id,
+                location: selectedEndpoint.location,
+                inventory_number: inventory,
+                user: (user && user.toLowerCase() !== 'unassigned') ? user : 'Unassigned',
+                user_name: user,
+                date_start: document.getElementById('edit-datestart').value.trim(),
+                pc_name: pcName,
+                os: document.getElementById('edit-os').value.trim(),
+                cpu: document.getElementById('edit-cpu').value.trim(),
+                ram_size: document.getElementById('edit-ram').value.trim(),
+                ram_mhz: document.getElementById('edit-rammhz').value.trim(),
+                motherboard: document.getElementById('edit-motherboard').value.trim(),
+                chipset: document.getElementById('edit-chipset').value.trim(),
+                chair: document.getElementById('edit-chair').value.trim(),
+                table: document.getElementById('edit-table').value.trim(),
+                mount: document.getElementById('edit-mount').value.trim(),
+                mount_type: document.getElementById('edit-mounttype').value.trim(),
+                substitute_pc_name: subPC,
+                substitute_owner: document.getElementById('edit-sub-owner').value.trim(),
+                substitute_reason: document.getElementById('edit-sub-reason').value.trim(),
+                comment: document.getElementById('edit-comment').value.trim(),
+                status: newStatus
+            };
+
+            try {
+                const response = await fetch('/api/endpoints/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    const idx = endpoints.findIndex(e => e.id === selectedEndpoint.id || e.location === selectedEndpoint.location);
+                    if (idx >= 0) {
+                        endpoints[idx] = { ...endpoints[idx], ...updateData };
+                        selectedEndpoint = endpoints[idx];
+                    }
+                    updateStats();
+                    renderFloorPlan();
+                    showDetails(selectedEndpoint);
+                    cancelEdit();
+                    showToast('Saved!', 'success');
+                    setTimeout(() => {
+                        const deskEl = document.querySelector(`.desk[data-location="${selectedEndpoint.location}"]`);
+                        if (deskEl) deskEl.classList.add('selected');
+                    }, 100);
+                } else {
+                    showToast(result.error || 'Failed', 'error');
+                }
+            } catch (error) {
+                showToast('Save failed', 'error');
+            }
+        }
+
+        async function removeSubstitute() {
+            if (!selectedEndpoint) return;
+            try {
+                const response = await fetch('/api/endpoints/remove-substitute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location: selectedEndpoint.location })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const idx = endpoints.findIndex(e => e.location === selectedEndpoint.location);
+                    if (idx >= 0) {
+                        endpoints[idx] = result.endpoint;
+                        selectedEndpoint = result.endpoint;
+                    }
+                    updateStats();
+                    renderFloorPlan();
+                    showDetails(selectedEndpoint);
+                    showToast('Substitute removed!', 'success');
+                    setTimeout(() => {
+                        const deskEl = document.querySelector(`.desk[data-location="${selectedEndpoint.location}"]`);
+                        if (deskEl) deskEl.classList.add('selected');
+                    }, 100);
+                } else {
+                    showToast(result.error || 'Failed', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to remove substitute', 'error');
+            }
+        }
+
+        function showReplaceComponent() {
+            if (!selectedEndpoint) return;
+            document.getElementById('replace-modal').classList.add('active');
+            document.getElementById('replace-component').value = '';
+            document.getElementById('replace-old').value = '';
+            document.getElementById('replace-new').value = '';
+            document.getElementById('replace-reason').value = '';
+        }
+
+        function hideReplaceComponent() {
+            document.getElementById('replace-modal').classList.remove('active');
+        }
+
+        async function submitReplacement() {
+            if (!selectedEndpoint) return;
+            const component = document.getElementById('replace-component').value;
+            const oldVal = document.getElementById('replace-old').value.trim();
+            const newVal = document.getElementById('replace-new').value.trim();
+            const reason = document.getElementById('replace-reason').value.trim();
+
+            if (!component || !newVal) {
+                showToast('Select component and new value', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/endpoints/replace-component', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        location: selectedEndpoint.location,
+                        component, old_value: oldVal, new_value: newVal, reason
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const idx = endpoints.findIndex(e => e.location === selectedEndpoint.location);
+                    if (idx >= 0) {
+                        endpoints[idx] = result.endpoint;
+                        selectedEndpoint = result.endpoint;
+                    }
+                    showDetails(selectedEndpoint);
+                    hideReplaceComponent();
+                    showToast('Component replaced!', 'success');
+                } else {
+                    showToast(result.error || 'Failed', 'error');
+                }
+            } catch (error) {
+                showToast('Failed', 'error');
+            }
+        }
+
+        function setupEventListeners() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    renderFloorPlan();
+                    if (selectedEndpoint) {
+                        const deskEl = document.querySelector(`.desk[data-location="${selectedEndpoint.location}"]`);
+                        if (deskEl) deskEl.classList.add('selected');
+                    }
+                });
+            });
+
+            const searchInput = document.getElementById('search-input');
+            const searchResults = document.getElementById('search-results');
+            searchInput.addEventListener('input', (e) => {
+                const q = e.target.value.toLowerCase().trim();
+                if (q.length < 2) { searchResults.classList.remove('active'); return; }
+                const results = endpoints.filter(ep => 
+                    (ep.location || '').toLowerCase().includes(q) ||
+                    (ep.user || '').toLowerCase().includes(q) ||
+                    (ep.user_name || '').toLowerCase().includes(q) ||
+                    (ep.inventory_number || '').toLowerCase().includes(q) ||
+                    (ep.pc_name || '').toLowerCase().includes(q)
+                ).slice(0, 10);
+                if (results.length > 0) {
+                    searchResults.innerHTML = results.map(ep => `
+                        <div class="search-result-item" data-location="${ep.location}">
+                            <strong>${ep.location}</strong> - ${ep.user || 'Unassigned'} (${ep.pc_name || 'No PC'})
+                        </div>
+                    `).join('');
+                    searchResults.classList.add('active');
+                    searchResults.querySelectorAll('.search-result-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            const loc = item.dataset.location;
+                            selectDesk(loc, getEndpoint(loc));
+                            searchResults.classList.remove('active');
+                            searchInput.value = '';
+                        });
+                    });
+                } else {
+                    searchResults.innerHTML = '<div class="search-result-item">No results</div>';
+                    searchResults.classList.add('active');
+                }
+            });
+            searchInput.addEventListener('blur', () => setTimeout(() => searchResults.classList.remove('active'), 200));
+
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    if (e.key === 'Escape') { e.target.blur(); if (isEditMode) cancelEdit(); }
+                    return;
+                }
+                if (e.key === 'e' && selectedEndpoint && !isEditMode) toggleEditMode();
+                else if (e.key === 'Escape' && isEditMode) cancelEdit();
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        async function refreshData() {
+            showToast('Refreshing...', 'info');
+            await loadData();
+        }
+
+        async function syncFromSheets() {
+            const btn = document.getElementById('sync-sheets-btn');
+            const originalLabel = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '⏳ Syncing...';
+            showToast('Syncing live data from Google Sheets — this can take a few seconds...', 'info');
+
+            try {
+                const response = await fetch('/api/refresh', { method: 'POST' });
+
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showToast(result.message || 'Data synced from Google Sheets', 'success');
+                    await loadData();
+                } else {
+                    showToast(result.error || 'Sync failed', 'error');
+                }
+            } catch (error) {
+                showToast('Sync failed: could not reach the server', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalLabel;
+            }
+        }
+
+        function exportData() {
+            const blob = new Blob([JSON.stringify(endpoints, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `endpoints_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            showToast('Exported!', 'success');
+        }
+
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>

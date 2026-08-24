@@ -1,0 +1,59 @@
+name: Build Windows executable
+
+# Builds OfficePanel.exe on a real, GitHub-hosted Windows machine -- no
+# Windows PC of your own required. GitHub's "windows-latest" runners come
+# with Visual Studio (MSVC) and CMake already installed, so this workflow
+# just needs to fetch the WebView2 SDK and then run the exact same CMake
+# steps as build_windows.bat / the VS Code tasks.
+#
+# How to use this:
+#   1. Push this repo (or your fork of it) to GitHub.
+#   2. Go to the "Actions" tab on GitHub -> "Build Windows executable" ->
+#      "Run workflow" (or just push a commit; it also runs automatically).
+#   3. Wait a few minutes for it to finish (green checkmark).
+#   4. Open the finished run, scroll to "Artifacts", and download
+#      "OfficePanel-windows" -- that's a zip containing the real,
+#      compiled OfficePanel.exe plus its web\ folder, built by an actual
+#      Windows machine.
+
+"on":
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: {}   # adds the manual "Run workflow" button on GitHub
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Fetch WebView2 SDK
+        shell: pwsh
+        run: |
+          if (Test-Path "packages\Microsoft.Web.WebView2\build\native\include\WebView2.h") {
+            Write-Host "WebView2 SDK already present, skipping download."
+          } else {
+            if (-not (Test-Path "nuget.exe")) {
+              Write-Host "Downloading nuget.exe..."
+              Invoke-WebRequest -Uri https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile nuget.exe
+            }
+            .\nuget.exe install Microsoft.Web.WebView2 -OutputDirectory packages -ExcludeVersion -NonInteractive
+          }
+
+      - name: Configure (CMake)
+        run: cmake -S . -B build -A x64
+
+      - name: Build (Release)
+        run: cmake --build build --config Release
+
+      - name: Install into dist\OfficePanel
+        run: cmake --install build --config Release --prefix dist/OfficePanel
+
+      - name: Upload OfficePanel.exe as a downloadable artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: OfficePanel-windows
+          path: dist/OfficePanel
+          if-no-files-found: error
